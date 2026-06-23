@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Simple Encrypt / Decrypt</title>
+  <style>
+    * { box-sizing: border-box; font-family: 'Segoe UI', sans-serif; }
+    body {
+      background: #1a1a2e;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      margin: 0;
+    }
+    .card {
+      background: #16213e;
+      padding: 30px;
+      border-radius: 16px;
+      width: 420px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.4);
+      position: relative;
+    }
+    h2 {
+      color: #e94560;
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    label {
+      color: #a0a0a0;
+      font-size: 13px;
+      display: block;
+      margin-bottom: 6px;
+    }
+    input, textarea {
+      width: 100%;
+      padding: 12px;
+      border: 1px solid #0f3460;
+      border-radius: 8px;
+      background: #0f3460;
+      color: #fff;
+      font-size: 14px;
+      margin-bottom: 15px;
+      resize: vertical;
+    }
+    input:focus, textarea:focus {
+      outline: none;
+      border-color: #e94560;
+    }
+    .btn-row {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 15px;
+    }
+    button {
+      flex: 1;
+      padding: 12px;
+      border: none;
+      border-radius: 8px;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: 0.2s;
+    }
+    .btn-encrypt {
+      background: #e94560;
+      color: #fff;
+    }
+    .btn-encrypt:hover { background: #c73e54; }
+    .btn-decrypt {
+      background: #533483;
+      color: #fff;
+    }
+    .btn-decrypt:hover { background: #3f2770; }
+    .btn-copy {
+      background: #0f3460;
+      color: #fff;
+      margin-bottom: 15px;
+    }
+    .btn-copy:hover { background: #1a4a7a; }
+    .output-box {
+      background: #0f3460;
+      padding: 12px;
+      border-radius: 8px;
+      color: #fff;
+      font-size: 13px;
+      word-break: break-all;
+      min-height: 60px;
+      border: 1px dashed #e94560;
+    }
+    .hint {
+      color: #666;
+      font-size: 11px;
+      text-align: center;
+      margin-top: 15px;
+    }
+
+    /* Toast notification styles */
+    #toast {
+      position: fixed;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #e94560;
+      color: #fff;
+      padding: 12px 24px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      box-shadow: 0 4px 20px rgba(233, 69, 96, 0.4);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s ease, top 0.3s ease;
+      z-index: 9999;
+    }
+    #toast.show {
+      opacity: 1;
+      top: 30px;
+    }
+  </style>
+</head>
+<body>
+
+<!-- Toast notification -->
+<div id="toast">Copied to clipboard!</div>
+
+<div class="card">
+  <h2>🔐 Simple Encrypt / Decrypt</h2>
+
+  <label>Secret Key (password)</label>
+  <input type="text" id="key" placeholder="Enter a secret key..." value="text-crypt">
+
+  <label>Your Message</label>
+  <textarea id="message" rows="3" placeholder="Type your message here..."></textarea>
+
+  <div class="btn-row">
+    <button class="btn-encrypt" onclick="doEncrypt()">🔒 Encrypt</button>
+    <button class="btn-decrypt" onclick="doDecrypt()">🔓 Decrypt</button>
+  </div>
+
+  <label>Result</label>
+  <div class="output-box" id="output">Result will appear here...</div>
+  <button class="btn-copy" onclick="copyResult()">📋 Copy Result</button>
+
+  <div class="hint">
+    Use the same key to encrypt and decrypt.<br>
+    The encrypted text is safe to send over any channel.
+  </div>
+</div>
+
+<script>
+  // ============================================
+  // SIMPLE XOR CIPHER
+  // ============================================
+
+  function encrypt(text, key) {
+    let result = "";
+    for (let i = 0; i < text.length; i++) {
+      const charCode = text.charCodeAt(i) ^ key.charCodeAt(i % key.length);
+      result += String.fromCharCode(charCode);
+    }
+    return btoa(result);
+  }
+
+  function decrypt(base64Text, key) {
+    let text = atob(base64Text);
+    let result = "";
+    for (let i = 0; i < text.length; i++) {
+      const charCode = text.charCodeAt(i) ^ key.charCodeAt(i % key.length);
+      result += String.fromCharCode(charCode);
+    }
+    return result;
+  }
+
+  // ============================================
+  // UI FUNCTIONS
+  // ============================================
+
+  let toastTimeout;
+
+  function showToast(message) {
+    const toast = document.getElementById("toast");
+    toast.textContent = message;
+    toast.classList.add("show");
+
+    clearTimeout(toastTimeout);
+    toastTimeout = setTimeout(() => {
+      toast.classList.remove("show");
+    }, 5000);
+  }
+
+  function doEncrypt() {
+    const key = document.getElementById("key").value;
+    const message = document.getElementById("message").value;
+
+    if (!key || !message) {
+      showToast("Please enter both a key and a message!");
+      return;
+    }
+
+    const encrypted = encrypt(message, key);
+    document.getElementById("output").textContent = encrypted;
+  }
+
+  function doDecrypt() {
+    const key = document.getElementById("key").value;
+    const message = document.getElementById("message").value;
+
+    if (!key || !message) {
+      showToast("Please enter both a key and the encrypted text!");
+      return;
+    }
+
+    try {
+      const decrypted = decrypt(message, key);
+      document.getElementById("output").textContent = decrypted;
+    } catch (e) {
+      showToast("Decryption failed! Wrong key or invalid encrypted text.");
+    }
+  }
+
+  function copyResult() {
+    const text = document.getElementById("output").textContent;
+    if (text === "Result will appear here...") {
+      showToast("Nothing to copy yet!");
+      return;
+    }
+    navigator.clipboard.writeText(text).then(() => {
+      showToast("Copied to clipboard!");
+    });
+  }
+</script>
+
+</body>
+</html>
