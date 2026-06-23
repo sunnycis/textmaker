@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Simple Encrypt / Decrypt</title>
   <style>
     * { box-sizing: border-box; font-family: 'Segoe UI', sans-serif; }
@@ -12,12 +13,14 @@
       align-items: center;
       min-height: 100vh;
       margin: 0;
+      padding: 20px; /* Added padding to prevent the card from touching screen edges on mobile */
     }
     .card {
       background: #16213e;
       padding: 30px;
       border-radius: 16px;
-      width: 420px;
+      width: 100%; /* Changed from fixed 420px to 100% width */
+      max-width: 420px; /* Restricts the card from expanding too wide on desktop */
       box-shadow: 0 10px 40px rgba(0,0,0,0.4);
       position: relative;
     }
@@ -25,6 +28,7 @@
       color: #e94560;
       text-align: center;
       margin-bottom: 20px;
+      font-size: 1.5rem; /* Fluid font sizing */
     }
     label {
       color: #a0a0a0;
@@ -76,6 +80,7 @@
       background: #0f3460;
       color: #fff;
       margin-bottom: 15px;
+      width: 100%; /* Ensures the copy button spans the full card width */
     }
     .btn-copy:hover { background: #1a4a7a; }
     .output-box {
@@ -87,12 +92,14 @@
       word-break: break-all;
       min-height: 60px;
       border: 1px dashed #e94560;
+      margin-bottom: 15px;
     }
     .hint {
       color: #666;
       font-size: 11px;
       text-align: center;
       margin-top: 15px;
+      line-height: 1.4;
     }
 
     /* Toast notification styles */
@@ -112,16 +119,28 @@
       pointer-events: none;
       transition: opacity 0.3s ease, top 0.3s ease;
       z-index: 9999;
+      width: max-content;
+      max-width: 90%; /* Stops the toast from clipping off the screen edge on tiny devices */
+      text-align: center;
     }
     #toast.show {
       opacity: 1;
       top: 30px;
     }
+
+    /* Media query for ultra-small mobile screens (e.g., older devices under 360px wide) */
+    @media (max-width: 360px) {
+      .card {
+        padding: 20px; /* Scale down internal padding slightly */
+      }
+      .btn-row {
+        flex-direction: column; /* Stack Encrypt and Decrypt buttons vertically if horizontal space runs out */
+      }
+    }
   </style>
 </head>
 <body>
 
-<!-- Toast notification -->
 <div id="toast">Copied to clipboard!</div>
 
 <div class="card">
